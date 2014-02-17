@@ -16,12 +16,12 @@ with open('requirements.txt') as f:
 
 setup(name='torndown',
       version=version,
-      description="(Tornado + Markdown) Markdown template generator w/opt foreign repo",
+      description="(Tornado + Markdown) Markdown w/ Github integration",
       long_description="""Tornado web plugin to generate pages from Markdown.
                           Markdown may be stored in a foreign repository for
                           high flexability and control.""",
       classifiers=classifiers,
-      keywords="tornado markdown web server",
+      keywords="tornado markdown web server github",
       author='@stevepeak',
       author_email='steve@stevepeak.net',
       url='http://github.com/stevepeak/torndown',
