@@ -12,6 +12,13 @@ from . import version
 
 
 class TorndownHandler(tornado.web.RequestHandler):
+    def initialize(self):
+        self.require_setting('TORNDOWN_DEBRIS', "Torndown")
+        self.require_setting('TORNDOWN_EXPIRES', "Torndown")
+        cashier = self.settings.get('TORNDOWN_DEBRIS', 'memory')
+        self._torndown_cashier = debris.cashier.use(cashier) if cashier is not "NONE" else None
+        self._torndown_cashier.default(expires=self.settings.get('TORNDOWN_EXPIRES'))
+
     @tornado.gen.coroutine
     def get(self, path):
         """Example route:
@@ -23,10 +30,12 @@ class TorndownHandler(tornado.web.RequestHandler):
         path = re.sub(r'^\/*', '', path)
         path = re.sub(r'\/*$', '', path)
         for setting in ('TORNDOWN_REPO', 'TORNDOWN_ACCESS_TOKEN', 'TORNDOWN_TEMPLATE'):
-            self.require_setting(setting, "Torndown Rendering")
+            self.require_setting(setting, "Torndown")
 
-        # cache = yield debris.locale.memory.get(path)
-        cache = debris.locale.memory.get(path)
+        
+        # future
+        # cache = yield self._torndown_cashier.get("torndown://"+path)
+        cache = self._torndown_cashier.get("torndown://"+path)
         if cache:
             self.render(self.settings['TORNDOWN_TEMPLATE'], torndown=cache)
 
@@ -56,8 +65,9 @@ class TorndownHandler(tornado.web.RequestHandler):
                 elif 'content' in body:
                     try:
                         content = markdown2.markdown(decode(body['content']))
-                        # yield debris.locale.memory.set(path, content)
-                        debris.locale.memory.set(path, content)
+                        # future
+                        # yield self._torndown_cashier.set("torndown://"+path, content)
+                        self._torndown_cashier.set("torndown://"+path, content)
                         self.render(self.settings['TORNDOWN_TEMPLATE'],
                                     torndown=content)
                     except:
@@ -66,9 +76,3 @@ class TorndownHandler(tornado.web.RequestHandler):
                     raise tornado.web.HTTPError(400, body['message'])
             else:
                 raise tornado.web.HTTPError(404)
-
-class TorndownGithubHandler(tornado.web.RequestHandler):
-    def post(self):
-        """Handles the Github hook to re-process templates
-        """
-        pass
