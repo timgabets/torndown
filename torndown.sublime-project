@@ -1,0 +1,17 @@
+{
+    "folders":
+    [
+        {
+            "path": "~/Documents/stevepeak/torndown",
+            "file_exclude_patterns": [".rdb", ".pyc", "*.sublime-workspace", "LICENSE"],
+            "folder_exclude_patterns": ["venv", "*.egg-info", "dist"]
+        }
+    ],
+    "settings":
+    {
+        "translate_tabs_to_spaces": true,
+        "detect_indentation": true,
+        "indent_to_bracket": true,
+        "ensure_newline_at_eof_on_save": true
+    }
+}
