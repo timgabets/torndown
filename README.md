@@ -15,22 +15,26 @@
 
 ```python
 import os
+import torndown
 import tornado.web
 import tornado.ioloop
 import tornado.httpclient
 
-import torndown
+# Repository
+os.environ["TORNDOWN_REPO"] = "stevepeak/torndown"
+# The template to insert the rendered markdown
+os.environ["TORNDOWN_TEMPLATE"] = "../example/base.html"
 
 application = tornado.web.Application([
-    (r"/(.*)", torndown.TorndownHandler) # !important to have the r"(.*)"
-  ],
-  TORNDOWN_REPO="stevepeak/torndown#master", # Github repository w/ reference
-  TORNDOWN_TEMPLATE="../example/base.html") # The template to insert the rendered markdown
+  # !important to have the r"(.*)"
+  (r"/(.*)", torndown.TorndownHandler)
+])
 
 if __name__ == '__main__':
     application.listen(8888)
     tornado.ioloop.IOLoop.instance().start()
 ```
+
 
 ### Real world example
 
