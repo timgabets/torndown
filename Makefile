@@ -27,3 +27,6 @@ tag:
 
 upload:
 	python setup.py sdist upload
+
+server:
+	python -m tests.server

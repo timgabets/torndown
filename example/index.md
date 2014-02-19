@@ -1,6 +1,8 @@
 # This content was generated via `Torndown`
 
-Cool right?
+```
+Cool right!
+```
 
 Here are some links to other pages rendered with `Torndown`
 

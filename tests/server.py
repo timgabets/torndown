@@ -1,14 +1,21 @@
-import tornado.ioloop
-import tornado.web
-import tornado.httpclient
 import os
+import tornado.web
+import tornado.ioloop
+import tornado.autoreload
+import tornado.httpclient
 
 import torndown
 
-application = tornado.web.Application([(r"/", torndown.TorndownHandler)],
-                                      TORNDOWN_REPO="stevepeak/torndown",
-                                      TORNDOWN_TEMPLATE="../example/base.html")
+# Set this settings in your environment file.
+os.environ["TORNDOWN_REPO"] = "stevepeak/torndown"
+os.environ["TORNDOWN_TEMPLATE"] = "../example/base.html"
+# os.environ["TORNDOWN_STORAGE"] = "memory"
+# os.environ["TORNDOWN_EXPIRES"] = ""
+# os.environ["TORNDOWN_ACCESS_TOKEN"] = ""
+
+application = tornado.web.Application([(r"/(.*)", torndown.TorndownHandler)],
+                                      autoreload=True, debug=True)
 
 if __name__ == '__main__':
-    application.listen(int(os.getenv('PORT', 5000)))
+    application.listen(int(os.getenv('PORT', 8888)))
     tornado.ioloop.IOLoop.instance().start()

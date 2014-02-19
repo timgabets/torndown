@@ -1,3 +1,4 @@
+import os
 import re
 import debris
 import markdown2
@@ -8,16 +9,14 @@ import tornado.httpclient
 from tornado.httputil import url_concat
 from base64 import b64decode as decode
 
-from . import version
+from torndown import version
 
 
 class TorndownHandler(tornado.web.RequestHandler):
     def initialize(self):
-        self.require_setting('TORNDOWN_DEBRIS', "Torndown")
-        self.require_setting('TORNDOWN_EXPIRES', "Torndown")
-        cashier = self.settings.get('TORNDOWN_DEBRIS', 'memory')
-        self._torndown_cashier = debris.cashier.use(cashier) if cashier is not "NONE" else None
-        self._torndown_cashier.default(expires=self.settings.get('TORNDOWN_EXPIRES'))
+        storage = os.getenv('TORNDOWN_STORAGE', 'memory')
+        self._torndown_storage = debris.storage.use(storage)
+        self._torndown_storage.default(expires=os.getenv('TORNDOWN_EXPIRES'))
 
     @tornado.gen.coroutine
     def get(self, path):
@@ -27,52 +26,69 @@ class TorndownHandler(tornado.web.RequestHandler):
         TORNDOWN_REPO := "owner/repo#ref" ex. "stevepeak/torndown#master"
         ... note: `ref` defaults to the repository's default branch (usually `master`)
         """
+
+        # fix path by replacing extra "/"s
         path = re.sub(r'^\/*', '', path)
         path = re.sub(r'\/*$', '', path)
-        for setting in ('TORNDOWN_REPO', 'TORNDOWN_ACCESS_TOKEN', 'TORNDOWN_TEMPLATE'):
-            self.require_setting(setting, "Torndown")
 
+        cache = self._torndown_storage.get("torndown:"+path)
+        template = os.getenv('TORNDOWN_TEMPLATE')
         
-        # future
-        # cache = yield self._torndown_cashier.get("torndown://"+path)
-        cache = self._torndown_cashier.get("torndown://"+path)
         if cache:
-            self.render(self.settings['TORNDOWN_TEMPLATE'], torndown=cache)
+            # the markdown was found in cache
+            if template:
+                self.render(template, torndown=cache)
+            else:
+                self.finish(cache)
 
         else:
             # Build arguments to get the markdown
-            url = "https://api.github.com/repos/%s/contents/%s.md"
-            repo = self.settings['TORNDOWN_REP'].split('#')
+            uri = "https://api.github.com/repos/%s/contents/%s.md"
+            repo = os.getenv('TORNDOWN_REPO').split('#')
             headers = {'User-Agent': 'Torndown v%s' % version}
             urlargs = {}
-            if 'TORNDOWN_ACCESS_TOKEN' in self.settings and self.settings['TORNDOWN_ACCESS_TOKEN']:
-                urlargs['access_token'] = self.settings['TORNDOWN_ACCESS_TOKEN']
+            access_token = os.getenv('TORNDOWN_ACCESS_TOKEN')
+            if access_token:
+                urlargs['access_token'] = access_token
+
             if len(repo) is 2:
                 urlargs['ref'] = repo[1]
 
-            http_client = tornado.httpclient.AsyncHTTPClient()
+            url = url_concat(uri % (repo[0], path), urlargs)
+            
             # Yield the markdown content from Github API v3
-            response = yield http_client.fetch(url_concat(url % (repo[0], path), urlargs), headers=headers)
+            http_client = tornado.httpclient.AsyncHTTPClient()
+            response = None
+            try:
+                response = yield http_client.fetch(url, headers=headers)
 
-            if response.code is 200:
-                body = tornado.escape.json_decode(response.body)
-                if body['message'] == "Not Found":
+            except tornado.httpclient.HTTPError as error:
+                if str(error.code) == "404":
                     # the file was not found, lets try to see if there is an index file...
-                    response = yield http_client.fetch(url_concat(url % (repo[0]+'/index', path), urlargs), headers=headers)
-                    body = tornado.escape.json_decode(response.body)
-                if body['message'] == "Not Found":
-                    raise tornado.web.HTTPError(404)
-                elif 'content' in body:
-                    try:
-                        content = markdown2.markdown(decode(body['content']))
-                        # future
-                        # yield self._torndown_cashier.set("torndown://"+path, content)
-                        self._torndown_cashier.set("torndown://"+path, content)
-                        self.render(self.settings['TORNDOWN_TEMPLATE'],
-                                    torndown=content)
-                    except:
-                        raise tornado.web.HTTPError(response.code)
+                    url = url_concat(uri % (repo[0], path+'/index'), urlargs)
+                    response = yield http_client.fetch(url, headers=headers)
+                    # we can allow this to throw a http error's
                 else:
-                    raise tornado.web.HTTPError(400, body['message'])
-            else:
-                raise tornado.web.HTTPError(404)
+                    raise
+
+            finally:
+                if response:
+                    # debode the api body
+                    body = tornado.escape.json_decode(response.body)
+
+                    if 'content' in body:
+                        try:
+                            # parse the markdown
+                            content = markdown2.markdown(decode(body['content']))
+                            # store the cache
+                            self._torndown_storage.set("torndown:"+path, content)
+                            # build the template
+                            self.render(template, torndown=content)
+                        except:
+                            raise tornado.web.HTTPError(response.code)
+
+                    else:
+                        raise tornado.web.HTTPError(response.code, body['message'])
+
+                else:
+                    raise tornado.web.HTTPError(404)
