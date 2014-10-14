@@ -1,4 +1,5 @@
 # Torndown [![Build Status](https://secure.travis-ci.org/stevepeak/torndown.png)](http://travis-ci.org/stevepeak/torndown) [![Version](https://pypip.in/v/torndown/badge.png)](https://github.com/stevepeak/torndown)
+[![codecov.io](https://codecov.io/github/stevepeak/torndown/coverage.svg?branch=master)](https://codecov.io/github/stevepeak/torndown?branch=master)
 
 > Inspiration credited to [Scalling Asana.com][3]
 
