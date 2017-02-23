@@ -1,4 +1,6 @@
-# Torndown [![Build Status](https://secure.travis-ci.org/stevepeak/torndown.png)](http://travis-ci.org/stevepeak/torndown) [![Version](https://pypip.in/v/torndown/badge.png)](https://github.com/stevepeak/torndown)
+# Torndown 
+Tornado web plugin to generate pages from Markdown.
+Markdown may be stored in a foreign repository for high flexability and control.
 
 > Inspiration credited to [Scalling Asana.com][3]
 
